@@ -3,7 +3,6 @@
 
 // init project
 var express = require("express");
-var moment = require("moment");
 var app = express();
 
 // enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
@@ -24,21 +23,36 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: "hello API" });
 });
 
-app.get("/api/:time", function (req, res) {
+app.get("/api/:time?", function (req, res) {
   let time = req.params.time;
-  if (moment(time, "YYYY-MM-DD", true).isValid()) {
+
+  // handle empty parameter
+  if (!time) {
+    let now = new Date();
     res.json({
-      unix: moment(time).valueOf(),
-      utc: moment(time).utc().format("ddd, DD MMM YYYY HH:mm:ss [GMT]"),
+      unix: now.getTime(),
+      utc: now.toUTCString(),
     });
-  } else if (moment(time, "X", true).isValid()) {
-    res.json({
-      unix: time,
-      utc: moment.unix(time).utc().format("ddd, DD MMM YYYY HH:mm:ss [GMT]"),
-    });
-  } else {
-    res.json({ error: "Invalid Date" });
+    return;
   }
+
+  // handle valid datestring or unix timestamp
+  let date;
+  if (!isNaN(time)) {
+    date = new Date(Number(time));
+  } else if (!isNaN(Date.parse(time))) {
+    date = new Date(time);
+  }
+
+  if (!date) {
+    res.json({ error: "Invalid date" });
+    return;
+  }
+
+  res.json({
+    unix: date.getTime(),
+    utc: date.toUTCString(),
+  });
 });
 
 // listen for requests :)
